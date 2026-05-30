@@ -1,53 +1,80 @@
 # PSC Court Sun Guide
 
-A mobile-first sun glare tracker for the 10 tennis courts at **Paddington Sports Club (PSC)**, 51 Castellain Road, Maida Vale, London W9.
+A mobile-first sun glare tracker for the 10 tennis courts at **Paddington Sports Club (PSC)**, Maida Vale, London W9.
 
-Helps players and bookers see at a glance which booking hours have sun glare problems, and whether cloud cover is likely to reduce that glare.
-
----
-
-## Live app
-
-Hosted on GitHub Pages — pinned to home screen on iPhone via Safari → Share → Add to Home Screen. Opens full-screen with no browser bar.
+Answers the question: *"Which court should I book, and will the sun be a problem?"*
 
 ---
 
-## What it shows
+## Using the app
 
 ### Booking time strip
-Horizontal scrollable row of booking slots (8am – 9pm). On page load it snaps to the next available booking hour. After 9pm it automatically jumps to tomorrow at 8am. Each button shows:
-- Two glare dots (left = Courts 1,2,3,6,7,8 · right = Courts 4,5,9,10)
-- Cloud cover % and type (L / M / H)
+Swipe left/right through the hourly booking slots (8am–9pm). The strip automatically opens at the next available booking hour. After 9pm it jumps to tomorrow at 8am — since PSC only allows bookings up to 4 hours ahead, there's nothing useful to show for tonight.
 
-**Glare dot colours:**
-| Colour | Meaning |
-|--------|---------|
-| 🟢 Green | No glare risk |
-| 🟡 Amber | Moderate glare — sun within 45° of serving line, elevation <30° |
-| 🔴 Red | Severe glare — sun directly in players' eyes, elevation <20° |
-| ⚫ Grey | Glare suppressed by >70% low (L) or mid (M) cloud cover |
+Each button displays:
+- **Two glare dots** — left dot for Courts 1,2,3,6,7,8 · right dot for Courts 4,5,9,10
+- **Cloud cover** — percentage and layer type (L / M / H)
 
 ### Court diagram
-Single diagram showing the selected court group with a toggle to switch between the two groups. Displays:
-- Sun position on a compass ring (yellow disc + elevation label)
-- Dashed amber line from sun through court centre to the opposite side (arrow points away from sun — the shadow direction)
-- Glare dots at each baseline end
-- Red north arrow (top-right)
-
-### Sun stats
-Elevation, azimuth, compass direction, sunrise, solar noon and sunset times — always in London local time (BST/GMT).
-
-### Cloud cover
-Fetched hourly from [open-meteo.com](https://open-meteo.com/) for the selected date. Each booking slot shows:
-- Total cloud cover %
-- **L** = low clouds dominant (stratus/cumulus — blocks direct sun most effectively)
-- **M** = mid clouds dominant (altostratus — partial blocking)
-- **H** = high clouds dominant (cirrus — barely attenuates the sun disc)
-
-Glare is suppressed (dots turn grey) only when total cloud cover exceeds 70% **and** the dominant layer is L or M. High cirrus at even 100% cover does not reliably block glare.
+Tap either toggle to switch between the two court groups. The diagram shows:
+- The sun's position on a compass ring, with its elevation in degrees
+- A dashed amber line running from the sun, through the court centre, to an arrowhead pointing in the shadow direction
+- Coloured dots at each baseline showing the glare risk for players serving from that end
 
 ### Date control
-Navigate to any date to see predicted sun positions. Cloud cover forecast is available approximately 7 days ahead.
+Tap the arrows or the date field to explore other days. Cloud forecast is available approximately 7 days ahead.
+
+---
+
+## Glare dot colours
+
+| Dot | Meaning |
+|-----|---------|
+| 🟢 Green | No glare risk |
+| 🟡 Amber | Moderate glare — sun within 45° of the serving/receiving line |
+| 🔴 Red | Severe glare — sun within 15° of the serving/receiving line |
+| ⚫ Grey | Glare suppressed by heavy low or mid-level cloud cover |
+
+Dots are calculated separately for each end of the court, because players at opposite baselines face different directions. The time strip shows the worst-case dot for each court group.
+
+---
+
+## Cloud cover (L / M / H)
+
+Cloud data is fetched hourly from [open-meteo.com](https://open-meteo.com/) for the selected date.
+
+| Label | Cloud type | Effect on glare |
+|-------|-----------|----------------|
+| **L** | Low clouds — stratus, cumulus | Blocks direct sun effectively |
+| **M** | Mid clouds — altostratus | Partial blocking |
+| **H** | High clouds — cirrus | Barely attenuates the sun disc — glare still possible |
+
+Glare dots turn grey only when total cloud cover exceeds 70% **and** the dominant layer is L or M. A sky full of high cirrus (H) does not suppress glare, even at 100%.
+
+---
+
+## How the glare model works
+
+The model evaluates two playing roles independently for each baseline end:
+
+**Server gaze window (elevation 15°–70°)**
+During the ball toss, the server looks almost directly upward. Any sun within this elevation band and within 45° of the serving direction causes glare.
+
+**Receiver gaze window (elevation 8°–25°)**
+The receiver tracks the incoming ball low over the net. Lower-elevation sun within 45° of the receiving direction causes glare.
+
+**Environmental clearance**
+Below 8° elevation the sun is blocked by PSC's surrounding fences, trees and buildings — no glare possible regardless of azimuth.
+
+**Severity tiers**
+
+| Threshold | Severity |
+|-----------|---------|
+| Sun within 15° of serving/receiving line, within gaze window | Severe 🔴 |
+| Sun within 45° of serving/receiving line, within gaze window | Moderate 🟡 |
+| Outside window or beyond 45° | No glare 🟢 |
+
+> **Note:** These thresholds are physically motivated but are being calibrated against real on-court experience. If you play a session where glare is a genuine problem, note the date, time and court — checking the elevation and sun angle in the app for that hour helps tune the model.
 
 ---
 
@@ -56,39 +83,21 @@ Navigate to any date to see predicted sun positions. Cloud cover forecast is ava
 ### Two orientation groups
 
 | Group | Courts | Serving direction | Surface |
-|-------|--------|------------------|---------|
-| **D1** | 1, 2, 3, 6, 7, 8 | ESE ↔ WNW (bearing ~126°/306°) | 6,7,8 clay · 1,2,3 blue hard |
-| **D2** | 4, 5, 9, 10 | NNE ↔ SSW (bearing ~36°/216°) | All blue hard |
+|-------|--------|-----------------|---------|
+| **D1** | 1, 2, 3, 6, 7, 8 | ESE ↔ WNW | 1,2,3 blue hard · 6,7,8 clay |
+| **D2** | 4, 5, 9, 10 | NNE ↔ SSW | Blue hard |
 
-Courts within each group are parallel, so one diagram per group is sufficient.
+Courts within each group are parallel, so one diagram covers the whole group.
 
-### Floodlights
-- Courts **1, 2, 3, 6, 7** — bookable until **9pm**
-- Courts **4, 5, 8, 9, 10** — bookable until **8pm**
-
----
-
-## Solar algorithm
-
-NOAA Solar Position Algorithm (SPA) implemented in JavaScript. Verified against NOAA's own online calculator at [gml.noaa.gov/grad/solcalc](https://gml.noaa.gov/grad/solcalc/).
-
-All times are always displayed in **Europe/London** (BST in summer, GMT in winter) regardless of the device's timezone, using the browser `Intl` API.
+### Bookable hours
+- Courts 1, 2, 3, 6, 7 — until **9pm** (floodlit)
+- Courts 4, 5, 8, 9, 10 — until **8pm**
 
 ---
 
-## Glare rules
+## Solar calculation
 
-```
-if sun below horizon OR angDiff > 60°  →  No glare (green)
-if angDiff < 30°  AND  elevation < 20° →  Severe  (red)
-if angDiff < 45°  AND  elevation < 30° →  Moderate (amber)
-otherwise                               →  No glare (green)
-if cloud suppressed (L/M > 70%)        →  Override to grey
-```
-
-**angDiff** = shortest angular difference between the sun's azimuth and the direction a player faces when serving (0° = sun directly in their eyes).
-
-These thresholds are provisional and being calibrated against real on-court feedback.
+Sun position uses the **NOAA Solar Position Algorithm** implemented in JavaScript. All times are shown in **London local time (BST/GMT)** regardless of the device's timezone.
 
 ---
 
@@ -96,18 +105,9 @@ These thresholds are provisional and being calibrated against real on-court feed
 
 | File | Purpose |
 |------|---------|
-| `index.html` | Main app — mobile-first, served via GitHub Pages |
-| `sun_tracker_map.html` | Satellite map version (Leaflet + ESRI tiles) |
-| `sun_tracker.html` | Original canvas prototype |
-| `PSC_logo.png` | Club logo shown in the header |
+| `index.html` | Main app — edit this, then upload to GitHub Pages to deploy |
+| `sun_tracker_map.html` | Alternative satellite map view (Leaflet + ESRI tiles) |
+| `PSC_logo.png` | Club logo |
 | `PSC-court-co-ordinates.xlsx` | GPS corner coordinates for all 10 courts |
-| `glare_rules_explained.md` | Detailed notes on the glare threshold logic |
-| `PROJECT_MEMORY.md` | Development notes and decisions |
-
----
-
-## Known issues / future work
-
-- **Glare rule calibration** — thresholds need tuning against real on-court reports
-- **Building shadows** — the houses on Castellain Road and boundary walls cast morning/evening shadows on some courts; not yet modelled
-- **Court 6 BL coordinate** — corrected geometrically from the other three corners using the parallelogram rule (original spreadsheet had a copy-paste error)
+| `glare_rules_explained.md` | Technical notes on the glare threshold logic |
+| `PROJECT_MEMORY.md` | Development history and decisions |
