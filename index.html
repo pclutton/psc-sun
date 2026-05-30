@@ -278,8 +278,8 @@
     </div>
     <div class="legend">
       <div class="legend-row"><span class="ldot" style="background:var(--green)"></span> No glare risk</div>
-      <div class="legend-row"><span class="ldot" style="background:var(--amber)"></span> Moderate glare — sun within 45° of serving line, elevation &lt;30°</div>
-      <div class="legend-row"><span class="ldot" style="background:var(--red)"></span> Severe glare — sun directly in players' eyes, elevation &lt;20°</div>
+      <div class="legend-row"><span class="ldot" style="background:var(--amber)"></span> Moderate glare — sun within 45° of serving/receiving line</div>
+      <div class="legend-row"><span class="ldot" style="background:var(--red)"></span> Severe glare — sun within 15° of serving/receiving line</div>
       <div class="legend-row"><span class="ldot" style="background:#475569"></span> Glare suppressed — &gt;70% low (L) or mid (M) cloud cover</div>
       <div class="legend-row"><span style="display:inline-block;width:9px;height:2px;background:rgba(254,240,138,0.55);border-radius:1px;margin-right:-1px"></span><span style="letter-spacing:-1px;color:rgba(254,240,138,0.55)">- -</span>&nbsp; Sun direction line (arrow points away from sun)</div>
     </div>
@@ -476,10 +476,25 @@ const D1_BEARING = 126;
 const D2_BEARING = 36;
 
 function glareLevel(angDiff, elev) {
-  if (elev <= 0 || angDiff > 60) return 'none';
-  if (angDiff < 30 && elev < 20)  return 'severe';
-  if (angDiff < 45 && elev < 30)  return 'moderate';
-  return 'none';
+  // Environmental clearance: below 8° the sun is blocked by fences/trees/buildings at PSC
+  if (elev < 8) return 'none';
+
+  const SEV = { none: 0, moderate: 1, severe: 2 };
+
+  function checkWindow(minE, maxE) {
+    if (elev < minE || elev > maxE) return 'none';
+    if (angDiff < 15) return 'severe';
+    if (angDiff < 45) return 'moderate';
+    return 'none';
+  }
+
+  // Server gaze window: looking upward tracking the ball toss (15°–70° elevation)
+  const server   = checkWindow(15, 70);
+  // Receiver gaze window: tracking the ball low over the net (8°–25° elevation)
+  // Note: receiver lower bound effectively 8° due to environmental clearance above
+  const receiver = checkWindow(8, 25);
+
+  return SEV[server] >= SEV[receiver] ? server : receiver;
 }
 
 function drawDiagram(canvasId, courtBearing, sunAz, sunElev, suppressed) {
