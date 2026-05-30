@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PSC Sun Guide">
+<meta name="theme-color" content="#1e293b">
+<title>PSC London — Court Sun Guide</title>
+<style>
+  :root {
+    --bg:      #0f172a;
+    --surface: #1e293b;
+    --border:  #334155;
+    --accent:  #fbbf24;
+    --text:    #f1f5f9;
+    --muted:   #94a3b8;
+    --green:   #22c55e;
+    --amber:   #f59e0b;
+    --red:     #ef4444;
+    --indigo:  #818cf8;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  body { min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* ── Header ── */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px;
+    padding-top: max(10px, env(safe-area-inset-top));  /* iPhone notch */
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    gap: 10px; flex-shrink: 0;
+  }
+  .brand { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .logo  { height: 32px; width: auto; object-fit: contain; flex-shrink: 0; }
+  .brand .club { font-size: 15px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+  .brand .sep  { color: var(--border); flex-shrink: 0; }
+  .brand .ttl  { font-size: 13px; color: var(--muted); white-space: nowrap;
+                 overflow: hidden; text-overflow: ellipsis; }
+  #clock {
+    font-size: 20px; font-weight: 700; color: var(--accent);
+    font-variant-numeric: tabular-nums; letter-spacing: .02em; flex-shrink: 0;
+  }
+
+  /* ── Main ── */
+  main { flex: 1; max-width: 900px; width: 100%; margin: 0 auto; padding: 18px 16px 32px; display: flex; flex-direction: column; gap: 20px; }
+
+  /* ── Date row ── */
+  .date-row {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .date-nav-group { display: flex; align-items: center; gap: 4px; }
+  .nav-btn {
+    min-width: 44px; min-height: 44px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--text); font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s; touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .nav-btn:hover { background: var(--border); }
+  input[type=date] {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); padding: 7px 12px;
+    font-size: 16px;  /* 16px prevents iOS Safari auto-zoom on focus */
+    outline: none; cursor: pointer;
+  }
+  input[type=date]:focus { border-color: var(--accent); }
+  .btn-now {
+    min-height: 44px; padding: 7px 14px; border-radius: 8px;
+    border: 1px solid var(--accent);
+    background: transparent; color: var(--accent); font-size: 13px;
+    font-weight: 600; cursor: pointer; transition: background .15s;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  }
+  .btn-now:hover, .btn-now.active { background: var(--accent); color: #1c1917; }
+
+  /* ── Daylight summary strip ── */
+  .day-strip {
+    font-size: 12px; color: var(--muted);
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 8px 12px; background: var(--surface); border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .day-strip span strong { color: var(--text); font-variant-numeric: tabular-nums; }
+
+  /* ── Time grid ── */
+  .section-label {
+    font-size: 11px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+  }
+  .time-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+  }
+  .time-btn {
+    position: relative;
+    min-height: 52px; padding: 6px 2px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--text); font-size: 12px; font-weight: 600;
+    cursor: pointer; text-align: center; line-height: 1.2;
+    transition: background .12s, border-color .12s, opacity .12s;
+    user-select: none; touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .time-btn:hover:not(.disabled) { background: var(--border); border-color: var(--muted); }
+  .time-btn.selected {
+    background: var(--accent); color: #1c1917; border-color: var(--accent);
+  }
+  .time-btn.is-now::after {
+    content: 'NOW';
+    position: absolute; top: 2px; right: 3px;
+    font-size: 6px; font-weight: 800; letter-spacing: .06em;
+    color: var(--accent); opacity: .9;
+  }
+  .time-btn.selected.is-now::after { color: #1c1917; opacity: .7; }
+  .time-btn.after-sunset { opacity: 0.45; }
+  .time-btn.lit-only {
+    border-style: dashed;
+  }
+  /* Dot-label-dot layout inside each time button */
+  .btn-inner {
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+  }
+  .hlabel { flex-shrink: 0; }
+  .hdot {
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+    background: rgba(100,116,139,0.4);   /* default grey until computed */
+    transition: background .2s;
+  }
+  .time-btn.selected .hdot { filter: brightness(1.15); }
+
+  /* ── Diagrams ── */
+  .diagrams-row {
+    display: flex; gap: 16px; flex-wrap: wrap;
+  }
+  .diagram-card {
+    flex: 1; min-width: min(280px, 100%);  /* full width on narrow phones */
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden;
+  }
+  .diagram-header {
+    padding: 10px 14px 8px;
+    display: flex; align-items: baseline; gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .diagram-title {
+    font-size: 15px; font-weight: 800; color: var(--accent);
+  }
+  .diagram-courts {
+    font-size: 12px; color: var(--muted); font-weight: 500;
+  }
+  canvas { display: block; width: 100%; height: auto; }
+  .glare-bar {
+    padding: 8px 14px;
+    font-size: 11px; line-height: 1.5;
+    border-top: 1px solid var(--border);
+    min-height: 36px; display: flex; align-items: center; gap: 6px;
+  }
+  .glare-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+
+  /* ── Stats ── */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;
+  }
+  .stat-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 8px; text-align: center;
+  }
+  .stat-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 3px; }
+  .stat-val { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent); }
+  .stat-unit { font-size: 10px; color: var(--muted); }
+
+  /* ── Legend ── */
+  .legend-row {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 11px; color: var(--muted);
+  }
+  .legend { display: flex; flex-direction: column; gap: 4px; }
+  .ldot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+  /* Night/below-horizon state */
+  .night-msg {
+    text-align: center; padding: 20px; color: var(--muted);
+    font-size: 15px; display: none;
+  }
+
+  @media (max-width: 600px) {
+    main { padding: 12px 12px 24px; gap: 14px; }
+    .stats-grid { grid-template-columns: repeat(3, 1fr); }
+    .time-grid  { grid-template-columns: repeat(4, 1fr); gap: 4px; }
+    .time-btn   { min-height: 48px; font-size: 11px; }
+    .brand .ttl { display: none; }   /* hide subtitle on small screens */
+    #clock      { font-size: 17px; }
+    .day-strip  { gap: 10px; font-size: 11px; }
+    .diagram-header { padding: 8px 12px 6px; }
+    .glare-bar  { font-size: 10px; padding: 6px 12px; }
+    .legend-row { font-size: 10px; }
+    .stat-val   { font-size: 15px; }
+  }
+  @media (max-width: 380px) {
+    .time-grid  { grid-template-columns: repeat(4, 1fr); gap: 3px; }
+    .time-btn   { font-size: 10px; min-height: 44px; }
+    .hdot       { width: 6px; height: 6px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="club">PSC London</span>
+    <img src="PSC_logo.png" alt="PSC" class="logo">
+    <span class="sep">·</span>
+    <span class="ttl">Court Sun Guide</span>
+  </div>
+  <div id="clock">--:--:--</div>
+</header>
+
+<main>
+
+  <!-- ── Date row ── -->
+  <div>
+    <div class="date-row">
+      <div class="date-nav-group">
+        <button class="nav-btn" onclick="shiftDate(-1)" title="Yesterday">‹</button>
+        <input type="date" id="dateInput" onchange="onDateChange()">
+        <button class="nav-btn" onclick="shiftDate(+1)" title="Tomorrow">›</button>
+      </div>
+      <button class="btn-now" id="nowBtn" onclick="goNow()">◎ Now</button>
+    </div>
+  </div>
+
+  <!-- ── Daylight strip ── -->
+  <div class="day-strip" id="dayStrip">
+    <span>☀ Sunrise <strong id="stripRise">--:--</strong></span>
+    <span>◐ Solar noon <strong id="stripNoon">--:--</strong></span>
+    <span>☽ Sunset <strong id="stripSet">--:--</strong></span>
+    <span>⏱ Daylight <strong id="stripDay">--</strong> h</span>
+  </div>
+
+  <!-- ── Booking hour buttons ── -->
+  <div>
+    <div class="section-label">Booking start time</div>
+    <div class="time-grid" id="timeGrid"></div>
+  </div>
+
+  <!-- ── Court diagrams ── -->
+  <div class="diagrams-row">
+    <!-- D1 -->
+    <div class="diagram-card">
+      <div class="diagram-header">
+        <span class="diagram-title">Courts 1, 2, 3, 6, 7, 8</span>
+        <span class="diagram-courts">ESE ↔ WNW</span>
+      </div>
+      <canvas id="d1Canvas" width="360" height="230"></canvas>
+      <div class="glare-bar" id="d1Glare">–</div>
+    </div>
+    <!-- D2 -->
+    <div class="diagram-card">
+      <div class="diagram-header">
+        <span class="diagram-title">Courts 4, 5, 9, 10</span>
+        <span class="diagram-courts">NNE ↔ SSW</span>
+      </div>
+      <canvas id="d2Canvas" width="360" height="230"></canvas>
+      <div class="glare-bar" id="d2Glare">–</div>
+    </div>
+  </div>
+
+  <!-- ── Sun stats ── -->
+  <div class="stats-grid">
+    <div class="stat-box"><div class="stat-lbl">Elevation</div><div class="stat-val" id="statElev">--</div><div class="stat-unit">°</div></div>
+    <div class="stat-box"><div class="stat-lbl">Azimuth</div><div class="stat-val" id="statAz">--</div><div class="stat-unit">°</div></div>
+    <div class="stat-box"><div class="stat-lbl">Sun direction</div><div class="stat-val" id="statDir" style="font-size:14px">--</div></div>
+    <div class="stat-box"><div class="stat-lbl">Sunrise</div><div class="stat-val" id="statRise" style="font-size:15px">--:--</div></div>
+    <div class="stat-box"><div class="stat-lbl">Solar noon</div><div class="stat-val" id="statNoon" style="font-size:15px">--:--</div></div>
+    <div class="stat-box"><div class="stat-lbl">Sunset</div><div class="stat-val" id="statSet" style="font-size:15px">--:--</div></div>
+  </div>
+
+  <!-- ── Legend ── -->
+  <div class="legend">
+    <div class="legend-row"><span class="ldot" style="background:var(--green)"></span> No glare risk — sun not aligned with serving direction</div>
+    <div class="legend-row"><span class="ldot" style="background:var(--amber)"></span> Moderate glare — sun within 45° of serving line, elevation &lt;30°</div>
+    <div class="legend-row"><span class="ldot" style="background:var(--red)"></span> Severe glare — sun directly in players' eyes, elevation &lt;20°</div>
+    <div class="legend-row"><span style="display:inline-block;width:9px;height:2px;background:var(--indigo);border-radius:1px;margin-right:-1px"></span><span style="letter-spacing:-1px">- -</span>&nbsp; Shadow direction from court centre</div>
+    <div class="legend-row" style="margin-top:2px;font-size:10px;color:var(--border);">
+      Courts 6, 7 have floodlights — bookable until 9pm. Courts 4, 5, 8, 9, 10 until 8pm.
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ============================================================
+//  SOLAR POSITION — NOAA SPA (same algorithm, verified)
+// ============================================================
+const DEG = Math.PI / 180, RAD = 180 / Math.PI;
+const PSC_LAT = 51.5265, PSC_LON = -0.18975;
+
+function getSunPos(date, lat, lon) {
+  const JD = date.getTime() / 86400000 + 2440587.5;
+  const JC = (JD - 2451545.0) / 36525;
+  const L0 = (280.46646 + JC*(36000.76983 + JC*0.0003032)) % 360;
+  const M  = 357.52911 + JC*(35999.05029 - 0.0001537*JC);
+  const C  = Math.sin(M*DEG)*(1.914602 - JC*(0.004817+0.000014*JC))
+           + Math.sin(2*M*DEG)*(0.019993-0.000101*JC)
+           + Math.sin(3*M*DEG)*0.000289;
+  const Om = 125.04 - 1934.136*JC;
+  const lam= (L0+C) - 0.00569 - 0.00478*Math.sin(Om*DEG);
+  const e0 = 23+(26+(21.448-JC*(46.815+JC*(0.00059-JC*0.001813)))/60)/60;
+  const eps= e0 + 0.00256*Math.cos(Om*DEG);
+  const delta = Math.asin(Math.sin(eps*DEG)*Math.sin(lam*DEG))*RAD;
+  const y = Math.tan((eps/2)*DEG)**2, e = 0.016708634-JC*(0.000042037+0.0000001267*JC);
+  const Eq = 4*RAD*(y*Math.sin(2*L0*DEG)-2*e*Math.sin(M*DEG)
+              +4*e*y*Math.sin(M*DEG)*Math.cos(2*L0*DEG)
+              -0.5*y*y*Math.sin(4*L0*DEG)-1.25*e*e*Math.sin(2*M*DEG));
+  const utcMin = date.getUTCHours()*60+date.getUTCMinutes()+date.getUTCSeconds()/60;
+  const TST = (utcMin+Eq+4*lon+1440)%1440;
+  const H = TST/4-180;
+  const phi=lat*DEG, dr=delta*DEG, Hr=H*DEG;
+  const elev = Math.asin(Math.sin(phi)*Math.sin(dr)+Math.cos(phi)*Math.cos(dr)*Math.cos(Hr))*RAD;
+  const az = ((Math.atan2(-Math.cos(dr)*Math.sin(Hr),
+               Math.sin(dr)*Math.cos(phi)-Math.cos(dr)*Math.cos(Hr)*Math.sin(phi))*RAD)+360)%360;
+  return { elevation: elev, azimuth: az };
+}
+
+function getRiseSunset(date) {
+  const midnight = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
+  let rise=null, set=null, noonE=-999, noonT=null, prev=getSunPos(midnight,PSC_LAT,PSC_LON).elevation;
+  for (let m=1;m<=1440;m++) {
+    const t = new Date(midnight.getTime()+m*60000);
+    const e = getSunPos(t,PSC_LAT,PSC_LON).elevation;
+    if (prev<=0&&e>0&&!rise) rise=t;
+    if (prev>0&&e<=0&&!set) set=t;
+    if (e>noonE){noonE=e;noonT=t;}
+    prev=e;
+  }
+  return {rise, set, noon:noonT};
+}
+
+// ── London timezone helpers ──
+// All times shown to users are always Europe/London (BST in summer, GMT in winter).
+// Using Intl lets the browser's own DST database handle the transitions correctly.
+const LONDON_TZ = 'Europe/London';
+
+function londonHour(d) {
+  // Return the current hour (0-23) in London time for any Date object.
+  return parseInt(d.toLocaleString('en-GB', { timeZone: LONDON_TZ, hour: 'numeric', hour12: false }));
+}
+
+function londonDate(d) {
+  // Return a plain Date representing the London calendar date (midnight local).
+  const s = d.toLocaleDateString('en-GB', { timeZone: LONDON_TZ }); // 'dd/mm/yyyy'
+  const [dd, mm, yyyy] = s.split('/').map(Number);
+  return new Date(yyyy, mm - 1, dd);
+}
+
+function fmtHM(d) {
+  if (!d) return '--:--';
+  // Always format in London time so BST is shown correctly regardless of device timezone.
+  return d.toLocaleTimeString('en-GB', {
+    timeZone: LONDON_TZ, hour: '2-digit', minute: '2-digit', hour12: false
+  });
+}
+function azDir(az){
+  return ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round(az/22.5)%16];
+}
+
+// ============================================================
+//  DIAGRAM DRAWING
+// ============================================================
+// D1: courts 1,2,3,6,7,8 → long axis bearing 126° (players serve ESE ↔ WNW)
+// D2: courts 4,5,9,10    → long axis bearing  36° (players serve NNE ↔ SSW)
+const D1_BEARING = 126;
+const D2_BEARING = 36;
+
+// For each diagram, "End A" is at bearing courtBearing from centre:
+//   players at End A face (courtBearing+180)° when serving
+// "End B" is at bearing (courtBearing+180)° from centre:
+//   players at End B face courtBearing when serving
+
+function glareLevel(angDiff, elev) {
+  if (elev <= 0 || angDiff > 60) return 'none';
+  if (angDiff < 30 && elev < 20)  return 'severe';
+  if (angDiff < 45 && elev < 30)  return 'moderate';
+  return 'none';
+}
+
+function drawDiagram(canvasId, courtBearing, sunAz, sunElev) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = W/2, cy = H/2;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  ctx.fillStyle = '#0c1525';
+  ctx.fillRect(0, 0, W, H);
+
+  // Compass ring
+  const ringR = Math.min(cx, cy) * 0.86;
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 7]);
+  ctx.beginPath(); ctx.arc(cx, cy, ringR, 0, Math.PI*2); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── Scale: pixels per metre ──
+  // Court: 23.77m long, 10.97m wide
+  // halfCL in pixels should be well inside ringR
+  const sc      = (ringR * 0.66) / 11.885;  // 66% of ring radius = half court length
+  const halfCL  = 23.77 / 2 * sc;
+  const halfCW  = 10.97 / 2 * sc;
+  const svcDist = 6.40 * sc;               // service line offset from net
+  const singOff = (10.97 - 8.23) / 2 * sc; // singles sideline inset
+
+  // ── Draw court (rotated so long axis → courtBearing from north) ──
+  // In canvas: +x = east (bearing 90°). After rotate((B-90)°): +x = bearing B.
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate((courtBearing - 90) * DEG);
+
+  // Court surface fill
+  ctx.fillStyle = 'rgba(30,58,138,0.28)';
+  ctx.fillRect(-halfCL, -halfCW, halfCL*2, halfCW*2);
+
+  // Doubles outline
+  ctx.strokeStyle = 'rgba(255,255,255,0.82)';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(-halfCL, -halfCW, halfCL*2, halfCW*2);
+
+  // Net (perpendicular to long axis, at x=0)
+  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(0, -halfCW); ctx.lineTo(0, halfCW);
+  ctx.stroke();
+
+  // Service lines (at x = ±svcDist)
+  ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  // Service lines parallel to net
+  ctx.moveTo(-svcDist, -halfCW + singOff); ctx.lineTo(-svcDist, halfCW - singOff);
+  ctx.moveTo( svcDist, -halfCW + singOff); ctx.lineTo( svcDist, halfCW - singOff);
+  // Centre service line (y axis in court space, between service lines)
+  ctx.moveTo(-svcDist, 0); ctx.lineTo(svcDist, 0);
+  ctx.stroke();
+
+  // Singles sidelines (dashed, subtle)
+  ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([4, 5]);
+  ctx.beginPath();
+  ctx.moveTo(-halfCL, -halfCW + singOff); ctx.lineTo(halfCL, -halfCW + singOff);
+  ctx.moveTo(-halfCL,  halfCW - singOff); ctx.lineTo(halfCL,  halfCW - singOff);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Centre mark baseline notches
+  ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+  ctx.lineWidth = 1;
+  const cmLen = 0.46 * sc;
+  ctx.beginPath();
+  ctx.moveTo(-halfCL, 0); ctx.lineTo(-halfCL + cmLen, 0);
+  ctx.moveTo( halfCL, 0); ctx.lineTo( halfCL - cmLen, 0);
+  ctx.stroke();
+
+  ctx.restore();
+
+  // ── Sun & shadow ──
+  const above = sunElev > 0;
+
+  function toXY(bearing, r) {
+    // bearing → canvas XY (north = up = -y)
+    return [cx + r * Math.sin(bearing * DEG), cy - r * Math.cos(bearing * DEG)];
+  }
+
+  if (above) {
+    const [sx, sy] = toXY(sunAz, ringR);
+
+    // Glow
+    const grd = ctx.createRadialGradient(sx, sy, 0, sx, sy, 28);
+    grd.addColorStop(0,   'rgba(254,240,138,0.95)');
+    grd.addColorStop(0.35,'rgba(251,191,36,0.55)');
+    grd.addColorStop(1,   'rgba(251,191,36,0)');
+    ctx.fillStyle = grd;
+    ctx.beginPath(); ctx.arc(sx, sy, 28, 0, Math.PI*2); ctx.fill();
+
+    // Sun disc
+    ctx.fillStyle = '#fef08a';
+    ctx.beginPath(); ctx.arc(sx, sy, 10, 0, Math.PI*2); ctx.fill();
+
+    // Dashed ray from sun to court centre
+    ctx.strokeStyle = 'rgba(254,240,138,0.55)';
+    ctx.lineWidth = 1.8;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(cx, cy); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Sun elevation label next to orb
+    const lblR = ringR + 20;
+    const [lx, ly] = toXY(sunAz, lblR);
+    ctx.fillStyle = '#fde047';
+    ctx.font = 'bold 10px system-ui';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(`${sunElev.toFixed(0)}°`, lx, ly);
+
+    // Shadow ray (from court centre, opposite to sun)
+    const shadAz = (sunAz + 180) % 360;
+    const shadLen = halfCL * 0.85;
+    const [shx, shy] = toXY(shadAz, shadLen);
+    ctx.strokeStyle = 'rgba(129,140,248,0.7)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(shx, shy); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Arrowhead on shadow ray
+    const headLen = 6, headWidth = 4;
+    const shadAngle = shadAz * DEG - Math.PI/2; // canvas angle
+    ctx.fillStyle = 'rgba(129,140,248,0.8)';
+    ctx.beginPath();
+    ctx.moveTo(shx, shy);
+    ctx.lineTo(shx - headLen*Math.cos(shadAngle - 0.4), shy - headLen*Math.sin(shadAngle - 0.4));
+    ctx.lineTo(shx - headLen*Math.cos(shadAngle + 0.4), shy - headLen*Math.sin(shadAngle + 0.4));
+    ctx.closePath(); ctx.fill();
+
+  } else {
+    // Night — moon icon
+    const [mx, my] = toXY(sunAz, ringR);
+    ctx.fillStyle = 'rgba(148,163,184,0.35)';
+    ctx.beginPath(); ctx.arc(mx, my, 10, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'rgba(148,163,184,0.7)';
+    ctx.font = '14px system-ui';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('🌙', mx, my);
+  }
+
+  // ── Glare dots at each baseline end ──
+  // End A: at bearing courtBearing from centre → players face (courtBearing+180)
+  // End B: at bearing (courtBearing+180) from centre → players face courtBearing
+  const facingA = (courtBearing + 180) % 360;
+  const facingB = courtBearing;
+
+  const angDiffA = Math.abs(((sunAz - facingA + 540) % 360) - 180);
+  const angDiffB = Math.abs(((sunAz - facingB + 540) % 360) - 180);
+  const glA = glareLevel(angDiffA, sunElev);
+  const glB = glareLevel(angDiffB, sunElev);
+
+  const dotColour = { none:'#22c55e', moderate:'#f59e0b', severe:'#ef4444' };
+
+  const [eAx, eAy] = toXY(courtBearing,         halfCL);
+  const [eBx, eBy] = toXY((courtBearing+180)%360, halfCL);
+
+  for (const [ex, ey, gl] of [[eAx, eAy, glA], [eBx, eBy, glB]]) {
+    const dc = above ? dotColour[gl] : '#475569';
+    ctx.fillStyle = dc;
+    ctx.beginPath(); ctx.arc(ex, ey, 7, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 1.5; ctx.stroke();
+
+    // Pulsing ring for severe glare
+    if (gl === 'severe' && above) {
+      ctx.strokeStyle = 'rgba(239,68,68,0.4)';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(ex, ey, 12, 0, Math.PI*2); ctx.stroke();
+    }
+  }
+
+  // ── Compass rose (top-right) ──
+  const rx = W - 18, ry = 16;
+  ctx.fillStyle = 'rgba(239,68,68,0.85)';
+  ctx.beginPath();
+  ctx.moveTo(rx, ry - 9); ctx.lineTo(rx - 3.5, ry + 5); ctx.lineTo(rx + 3.5, ry + 5);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#ef4444';
+  ctx.font = 'bold 8px system-ui';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  ctx.fillText('N', rx, ry - 9);
+
+  return { glA, glB, facingA, facingB };
+}
+
+function updateGlareBar(barId, glA, glB, facingA, facingB, sunElev) {
+  const bar = document.getElementById(barId);
+  if (!bar) return;
+
+  if (sunElev <= 0) {
+    bar.innerHTML = '<span style="color:var(--muted)">🌙 Sun below horizon — no glare</span>';
+    return;
+  }
+
+  const dotColour = { none:'var(--green)', moderate:'var(--amber)', severe:'var(--red)' };
+  const label     = { none:'No glare', moderate:'Moderate glare', severe:'Severe glare' };
+  const dirA = azDir(facingA), dirB = azDir(facingB);
+
+  const parts = [];
+  if (glA !== 'none') parts.push(`<span class="glare-dot" style="background:${dotColour[glA]}"></span> <b>${label[glA]}</b> at ${dirB} baseline (facing ${dirA})`);
+  if (glB !== 'none') parts.push(`<span class="glare-dot" style="background:${dotColour[glB]}"></span> <b>${label[glB]}</b> at ${dirA} baseline (facing ${dirB})`);
+
+  if (parts.length === 0) {
+    bar.innerHTML = `<span class="glare-dot" style="background:var(--green)"></span> <span style="color:var(--green)">No glare at either baseline</span>`;
+  } else {
+    bar.innerHTML = parts.join('&ensp;·&ensp;');
+  }
+}
+
+// ============================================================
+//  STATE & UI
+// ============================================================
+let selectedDate = new Date();
+let selectedHour = new Date().getHours();
+let rssData = { rise:null, set:null, noon:null, key:'' };
+
+const HOURS = [8,9,10,11,12,13,14,15,16,17,18,19,20,21];
+
+// Courts with floodlights can book until 9pm (21:00): courts 1,2,3,6,7
+// Others until 8pm (20:00). For the button grid, 21 (9pm) is lit-courts only.
+// We'll mark hour 21 as "lit courts only" but keep it enabled.
+
+function buildTimeGrid() {
+  const grid = document.getElementById('timeGrid');
+  grid.innerHTML = '';
+  HOURS.forEach(h => {
+    const btn = document.createElement('button');
+    btn.className = 'time-btn';
+    btn.dataset.hour = h;
+    btn.onclick = () => selectHour(h);
+    const label = h === 12 ? 'noon' : h < 12 ? `${h}am` : `${h-12}pm`;
+    btn.innerHTML = `<div class="btn-inner">
+      <span class="hdot" id="dot-d1-${h}"></span>
+      <span class="hlabel">${label}</span>
+      <span class="hdot" id="dot-d2-${h}"></span>
+    </div>`;
+    grid.appendChild(btn);
+  });
+}
+
+// Return the worst glare level ('none'|'moderate'|'severe') across both baselines
+// for a court group at a given sun position.
+function worstGlare(courtBearing, sunAz, sunElev) {
+  const sev = { none:0, moderate:1, severe:2 };
+  const facingA = (courtBearing + 180) % 360;
+  const facingB = courtBearing;
+  const angA = Math.abs(((sunAz - facingA + 540) % 360) - 180);
+  const angB = Math.abs(((sunAz - facingB + 540) % 360) - 180);
+  const glA = glareLevel(angA, sunElev);
+  const glB = glareLevel(angB, sunElev);
+  return sev[glA] >= sev[glB] ? glA : glB;
+}
+
+// Repaint all button glare dots for the currently selected date.
+function updateButtonDots() {
+  const COL = { none:'#22c55e', moderate:'#f59e0b', severe:'#ef4444' };
+  const NIGHT = 'rgba(100,116,139,0.35)';
+  HOURS.forEach(h => {
+    const sun = getSunPos(getDateForHour(h), PSC_LAT, PSC_LON);
+    const above = sun.elevation > 0;
+    const d1col = above ? COL[worstGlare(D1_BEARING, sun.azimuth, sun.elevation)] : NIGHT;
+    const d2col = above ? COL[worstGlare(D2_BEARING, sun.azimuth, sun.elevation)] : NIGHT;
+    const d1 = document.getElementById(`dot-d1-${h}`);
+    const d2 = document.getElementById(`dot-d2-${h}`);
+    if (d1) d1.style.background = d1col;
+    if (d2) d2.style.background = d2col;
+  });
+}
+
+function getDateForHour(hour) {
+  // Convert a London-local hour (e.g. 9 = 9am BST) into a UTC-based Date.
+  // We try UTC+1 (BST) first, then UTC+0 (GMT), and pick whichever produces
+  // the correct London clock hour — so DST transitions are handled automatically.
+  const y  = selectedDate.getFullYear();
+  const mo = selectedDate.getMonth();
+  const d  = selectedDate.getDate();
+  for (const offset of [1, 0]) {
+    const candidate = new Date(Date.UTC(y, mo, d, hour - offset, 0, 0));
+    if (londonHour(candidate) === hour) return candidate;
+  }
+  return new Date(Date.UTC(y, mo, d, hour, 0, 0)); // fallback
+}
+
+function refreshRSS() {
+  const key = selectedDate.toDateString();
+  if (key === rssData.key) return;
+  rssData = { ...getRiseSunset(selectedDate), key };
+  document.getElementById('stripRise').textContent = fmtHM(rssData.rise);
+  document.getElementById('stripNoon').textContent = fmtHM(rssData.noon);
+  document.getElementById('stripSet').textContent  = fmtHM(rssData.set);
+  if (rssData.rise && rssData.set)
+    document.getElementById('stripDay').textContent =
+      ((rssData.set - rssData.rise)/3600000).toFixed(1);
+  document.getElementById('statRise').textContent = fmtHM(rssData.rise);
+  document.getElementById('statNoon').textContent = fmtHM(rssData.noon);
+  document.getElementById('statSet').textContent  = fmtHM(rssData.set);
+}
+
+function refreshButtons() {
+  const now       = new Date();
+  const curHour   = londonHour(now);                             // London clock hour
+  const isToday   = selectedDate.toDateString() === londonDate(now).toDateString();
+
+  // Sunset hour in London time (so 9pm BST dimming works correctly)
+  const setSunset = rssData.set ? londonHour(rssData.set) : 22;
+
+  document.querySelectorAll('.time-btn').forEach(btn => {
+    const h = parseInt(btn.dataset.hour);
+    btn.classList.remove('selected','is-now','after-sunset','lit-only');
+
+    if (h === selectedHour) btn.classList.add('selected');
+    if (isToday && h === curHour) btn.classList.add('is-now');
+    if (h > setSunset + 1) btn.classList.add('after-sunset');
+    if (h === 21) btn.classList.add('lit-only');
+  });
+}
+
+function selectHour(h) {
+  selectedHour = h;
+  refreshButtons();
+  updateDiagrams();
+}
+
+function updateDiagrams() {
+  const dateAtHour = getDateForHour(selectedHour);
+  const sun = getSunPos(dateAtHour, PSC_LAT, PSC_LON);
+
+  // Draw D1 (bearing 126°)
+  const d1 = drawDiagram('d1Canvas', D1_BEARING, sun.azimuth, sun.elevation);
+  updateGlareBar('d1Glare', d1.glA, d1.glB, d1.facingA, d1.facingB, sun.elevation);
+
+  // Draw D2 (bearing 36°)
+  const d2 = drawDiagram('d2Canvas', D2_BEARING, sun.azimuth, sun.elevation);
+  updateGlareBar('d2Glare', d2.glA, d2.glB, d2.facingA, d2.facingB, sun.elevation);
+
+  // Update stats
+  document.getElementById('statElev').textContent = sun.elevation.toFixed(1);
+  document.getElementById('statAz').textContent   = sun.azimuth.toFixed(1);
+  document.getElementById('statDir').textContent  = azDir(sun.azimuth);
+}
+
+// ── Date navigation ──
+function onDateChange() {
+  const v = document.getElementById('dateInput').value;
+  if (v) {
+    const [y,m,d] = v.split('-').map(Number);
+    selectedDate = new Date(y, m-1, d);
+    rssData.key = '';
+    refreshRSS();
+    updateButtonDots();
+    refreshButtons();
+    updateDiagrams();
+  }
+}
+
+function shiftDate(delta) {
+  selectedDate.setDate(selectedDate.getDate() + delta);
+  syncDateInput();
+  rssData.key = '';
+  refreshRSS();
+  updateButtonDots();
+  refreshButtons();
+  updateDiagrams();
+}
+
+function syncDateInput() {
+  const d = selectedDate;
+  const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  document.getElementById('dateInput').value = iso;
+}
+
+function goNow() {
+  const now    = new Date();
+  selectedDate = londonDate(now);                                // today in London
+  const lhour  = londonHour(now);                               // current London hour
+  // Snap to the nearest valid booking hour (8–21)
+  selectedHour = HOURS.reduce((prev, curr) =>
+    Math.abs(curr - lhour) < Math.abs(prev - lhour) ? curr : prev);
+  syncDateInput();
+  rssData.key = '';
+  refreshRSS();
+  updateButtonDots();
+  refreshButtons();
+  updateDiagrams();
+}
+
+// ── Clock ──
+function tickClock() {
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('en-GB', {hour12:false});
+  refreshButtons(); // updates NOW badge each second
+}
+
+// ── Init ──
+window.addEventListener('load', () => {
+  buildTimeGrid();
+  goNow();           // sets date + hour, calls refreshRSS + updateButtonDots + updateDiagrams
+  setInterval(tickClock, 1000);
+});
+
+// Redraw on resize (canvas scaling)
+window.addEventListener('resize', updateDiagrams);
+</script>
+</body>
+</html>
